@@ -9,7 +9,7 @@ const specifics = require('./specific-types.json')
 const { EDIT_WARNING } = require('../constants')
 
 const TYPING_SCOPES = ['element', 'browser', 'mock']
-const EXCLUDED_COMMANDS = ['execute', 'executeAsync', 'call']
+const EXCLUDED_COMMANDS = ['execute', 'executeAsync', 'call', 'addCommand', 'overwriteCommand']
 const INDENTATION = ' '.repeat(8)
 
 const jsDocTemplate = `
@@ -19,7 +19,7 @@ ${INDENTATION} */`
 
 const gatherCommands = (commandPath, commandFile, promisify = false) => {
     const allTypeLines = []
-    const commandName = commandFile.substr(0, commandFile.indexOf('.js'))
+    const commandName = commandFile.slice(0, -3)
 
     if (specifics[commandName]) {
         const specificCommand = specifics[commandName]

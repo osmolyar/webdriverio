@@ -120,6 +120,9 @@ exports.config = {
     // The number of times to retry the entire specfile when it fails as a whole
     specFileRetries: 1,
     //
+    // Delay in seconds between the spec file retry attempts
+    specFileRetriesDelay: 0,
+    //
     // Retried specfiles are inserted at the beginning of the queue and retried immediately
     specFileRetriesDeferred: false,
     //
@@ -174,7 +177,7 @@ exports.config = {
         source: true,       // <boolean> hide source uris
         profile: [],        // <string[]> (name) specify the profile to use
         strict: false,      // <boolean> fail if there are any undefined or pending steps
-        tags: [],           // <string[]> (expression) only execute the features or scenarios with tags matching the expression
+        tagExpression: '',  // <string> (expression) only execute the features or scenarios with tags matching the expression
         timeout: 20000,     // <number> timeout for step definitions
         ignoreUndefinedDefinitions: false, // <boolean> Enable this config to treat undefined definitions as warnings.
     },
@@ -218,9 +221,10 @@ exports.config = {
      * Gets executed before test execution begins. At this point you can access to all global
      * variables like `browser`. It is the perfect place to define custom commands.
      * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {Array.<String>} specs List of spec file paths that are to be run
+     * @param {Array.<String>} specs        List of spec file paths that are to be run
+     * @param {Object}         browser      instance of created browser/device session
      */
-    before: function (capabilities, specs) {
+    before: function (capabilities, specs, browser) {
     },
     /**
      * Hook that gets executed before the suite starts

@@ -41,12 +41,17 @@ exports.config = {
     //
     user: 'webdriverio',
     key:  'xxxxxxxxxxxxxxxx-xxxxxx-xxxxx-xxxxxxxxx',
-    //
+    
     // If you run your tests on Sauce Labs you can specify the region you want to run your tests
     // in via the `region` property. Available short handles for regions are `us` (default) and `eu`.
     // These regions are used for the Sauce Labs VM cloud and the Sauce Labs Real Device Cloud.
     // If you don't provide the region, it defaults to `us`.
     region: 'us',
+    //
+    // Sauce Labs provides a [headless offering](https://saucelabs.com/products/web-testing/sauce-headless-testing)
+    // that allows you to run Chrome and Firefox tests headless.
+    //
+    headless: false
     //
     // ==================
     // Specify Test Files
@@ -104,8 +109,10 @@ exports.config = {
         // Parameter to ignore some or all default flags
         // - if value is true: ignore all DevTools 'default flags' and Puppeteer 'default arguments'
         // - if value is an array: DevTools filters given default arguments
-        // ignoreDefaultArgs: true,
-        // ignoreDefaultArgs: ['--disable-sync', '--disable-extensions'],
+        // 'wdio:devtoolsOptions': {
+        //    ignoreDefaultArgs: true,
+        //    ignoreDefaultArgs: ['--disable-sync', '--disable-extensions'],
+        // }
     }, {
         // maxInstances can get overwritten per capability. So if you have an in house Selenium
         // grid with only 5 firefox instance available you can make sure that not more than
@@ -179,6 +186,8 @@ exports.config = {
     //
     // The number of times to retry the entire specfile when it fails as a whole
     specFileRetries: 1,
+    // Delay in seconds between the spec file retry attempts
+    specFileRetriesDelay: 0,
     // Whether or not retried specfiles should be retried immediately or deferred to the end of the queue
     specFileRetriesDeferred: false,
     //
@@ -233,7 +242,7 @@ exports.config = {
         source: true,       // <boolean> hide source URIs
         profile: [],        // <string[]> (name) specify the profile to use
         strict: false,      // <boolean> fail if there are any undefined or pending steps
-        tagExpression: [],  // <string[]> (expression) only execute the features or scenarios with tags matching the expression
+        tagExpression: '',  // <string> (expression) only execute the features or scenarios with tags matching the expression
         timeout: 20000,     // <number> timeout for step definitions
         ignoreUndefinedDefinitions: false, // <boolean> Enable this config to treat undefined definitions as warnings.
         scenarioLevelReporter: false // Enable this to make webdriver.io behave as if scenarios and not steps were the tests.
@@ -278,9 +287,10 @@ exports.config = {
      * Gets executed before test execution begins. At this point you can access to all global
      * variables like `browser`. It is the perfect place to define custom commands.
      * @param {Array.<Object>} capabilities list of capabilities details
-     * @param {Array.<String>} specs List of spec file paths that are to be run
+     * @param {Array.<String>} specs        List of spec file paths that are to be run
+     * @param {Object}         browser      instance of created browser/device session
      */
-    before: function (capabilities, specs) {
+    before: function (capabilities, specs, browser) {
     },
     /**
      * Gets executed before the suite starts.

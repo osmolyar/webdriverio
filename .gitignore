@@ -64,10 +64,9 @@ tests/typings/**/dist
 
 **/build
 /*.js
-allure-reporter.d.ts
 devtools.d.ts
-!babel.config.js
 !.eslintrc.js
+!jest.config.js
 packages/**/package-lock.json
 .DS_Store
 
@@ -80,7 +79,7 @@ website/sidebars.json
 website/node_modules
 website/i18n/*
 docs/api/**/*.md
-!docs/api/expect.md
+docs/docs/**/*.md
 docs/_*.md
 
 # Editor files
@@ -94,3 +93,4 @@ wallaby.conf.js
 tags
 tests/.retry_succeeded
 .sass-cache
+*.tsbuildinfo

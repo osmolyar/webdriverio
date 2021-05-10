@@ -53,8 +53,6 @@ async function bar() {
 
     await browser.createWindow('tab')
     await browser.createWindow('window')
-    // @ts-expect-error
-    await browser.createWindow('something else')
 
     const waitUntil: boolean = await browser.waitUntil(
         () => Promise.resolve(true),
@@ -94,6 +92,22 @@ async function bar() {
     )
     callResult.toFixed(2)
 
+    // printPage
+    await browser.savePDF('./packages/bar.pdf', {
+        orientation: 'landscape',
+        background: true,
+        width: 24.5,
+        height: 26.9,
+        top: 10,
+        bottom: 10,
+        left: 5,
+        right: 5,
+        shrinkToFit: true,
+        pageRanges: [{}]
+    })
+
+    await browser.savePDF('./packages/bar.pdf')
+
     // browser element command
     browser.getElementRect('elementId')
 
@@ -108,10 +122,6 @@ async function bar() {
 
     // browser custom command
     await browser.browserCustomCommand(14)
-
-    browser.overwriteCommand('click', function (origCommand) {
-        return origCommand()
-    })
 
     // $
     const el1 = await $('')
@@ -157,6 +167,16 @@ async function bar() {
     const el5 = await el4.$('')
     await el4.getAttribute('class')
     await el5.scrollIntoView(false)
+
+    // An examples of addValue command with enabled/disabled translation to Unicode
+    const elem = await $('')
+    await elem.addValue('Delete', { translateToUnicode: true })
+    await elem.addValue('Delete', { translateToUnicode: false })
+
+    // An examples of setValue command with enabled/disabled translation to Unicode
+    const elem1 = await $('')
+    elem1.setValue('Delete', { translateToUnicode: true })
+    elem1.setValue('Delete', { translateToUnicode: false })
 
     const selector$$: string | Function = elems.selector
     const parent$$: WebdriverIO.Element | WebdriverIO.BrowserObject = elems.parent
@@ -204,7 +224,8 @@ async function bar() {
     await ele.dragAndDrop({ x: 1, y: 2 })
 
     // addLocatorStrategy
-    browser.addLocatorStrategy('myStrat', () => {})
+    browser.addLocatorStrategy('myStrat', () => document.body)
+    browser.addLocatorStrategy('myStrat', () => document.querySelectorAll('div'))
 
     // test access to base client properties
     browser.sessionId
@@ -264,6 +285,42 @@ function testSevereServiceError_noParameters() {
 function testSevereServiceError_stringParameter() {
     throw new SevereServiceError("Something happened.");
 }
+
+// addCommand
+
+// element
+browser.addCommand('getClass', async function () {
+    return this.getAttribute('class').catch()
+}, true)
+
+// browser
+browser.addCommand('sleep', async function (ms: number) {
+    return this.pause(ms).catch()
+}, false)
+
+browser.addCommand('sleep', async function (ms: number) {
+    return this.pause(ms).catch()
+})
+
+// overwriteCommand
+
+// element
+type ClickOptionsExtended = WebdriverIO.ClickOptions & { wait?: boolean }
+browser.overwriteCommand('click', async function (clickFn, opts: ClickOptionsExtended = {}) {
+    if (opts.wait) {
+        await this.waitForClickable().catch()
+    }
+    return clickFn(opts).catch()
+}, true)
+
+// browser
+browser.overwriteCommand('pause', async function (pause, ms = 1000) {
+    return pause(ms).catch()
+}, false)
+
+browser.overwriteCommand('pause', async function (pause, ms = 1000) {
+    return pause(ms).catch()
+})
 
 // allure-reporter
 allure.addFeature('')

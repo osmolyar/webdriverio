@@ -1,5 +1,4 @@
 /// <reference types="webdriverio/webdriverio-core"/>
-
 declare namespace WebdriverIO {
     function remote(
         options?: RemoteOptions,
@@ -11,10 +10,15 @@ declare namespace WebdriverIO {
     ): BrowserObject;
 
     function multiremote(
-        options: MultiRemoteOptions
-    ): Promise<BrowserObject>;
+        options: MultiRemoteOptions,
+        config?: { automationProtocol?: string }
+    ): Promise<MultiRemoteBrowserObject>;
 
     interface Browser {
+        strategies: Map<string, () => WebDriver.ElementReference | WebDriver.ElementReference[]>
+        __propertiesObject__: Record<string, PropertyDescriptor>
+        puppeteer?: any
+
         /**
          * execute any async action within your test spec
          */
@@ -25,7 +29,11 @@ declare namespace WebdriverIO {
          * The executed script is assumed to be synchronous and the result of evaluating the script is returned to
          * the client.
          */
-        execute: <T>(script: string | ((...arguments: any[]) => T), ...arguments: any[]) => Promise<T>;
+        execute: {
+            <T, U extends any[], V extends U>(script: string | ((...arguments: V) => T), ...arguments: U): Promise<T>;
+            // This overload can be removed when typescript supports partial generics inference: https://github.com/microsoft/TypeScript/issues/26242
+            <T>(script: string | ((...arguments: any[]) => T), ...arguments: any[]): Promise<T>;
+        };
 
         // there is no way to add callback as last parameter after `...args`.
         // https://github.com/Microsoft/TypeScript/issues/1360
@@ -36,10 +44,15 @@ declare namespace WebdriverIO {
          * the provided callback, which is always provided as the final argument to the function. The value
          * to this callback will be returned to the client.
          */
-        executeAsync: (script: string | ((...arguments: any[]) => void), ...arguments: any[]) => Promise<any>;
+        executeAsync: <U extends any[], V extends U>(script: string | ((...arguments: V) => void), ...arguments: U) => Promise<any>;
     }
 
-    interface BrowserObject extends WebDriver.ClientOptions, WebDriver.ClientAsync, Browser { }
+
+    interface BrowserObject extends WebDriver.ClientOptions, WebDriver.ClientAsync, Browser {
+    }
+
+    interface MultiRemoteBrowser extends WebDriver.ClientOptions, WebDriver.ClientAsync, Browser {
+    }
 
     /**
      * Error to be thrown when a severe error was encountered when a Service is being ran.
@@ -47,8 +60,13 @@ declare namespace WebdriverIO {
     class SevereServiceError extends Error { }
 }
 
-declare var browser: WebdriverIO.BrowserObject;
-declare var driver: WebdriverIO.BrowserObject;
+declare var browser: WebdriverIO.BrowserObject | WebdriverIO.MultiRemoteBrowserObject;
+declare var driver: WebdriverIO.BrowserObject | WebdriverIO.MultiRemoteBrowserObject;
+
+/**
+ * internal flags
+ */
+declare var _HAS_FIBER_CONTEXT: boolean
 
 /**
  * find a single element on the page.

@@ -6,7 +6,7 @@ module.exports = function (docfile) {
     const javadoc = docfile.javadoc[0]
 
     let type = (javadoc.ctx && javadoc.ctx.type)
-    const name = path.basename(docfile.filename, '.js')
+    const name = path.basename(path.basename(docfile.filename, '.js'), '.ts')
     const scope = docfile.filename.split('/').slice(-2, -1)[0]
 
     let description = ''
@@ -98,9 +98,9 @@ module.exports = function (docfile) {
             ++currentLine
 
             var checkForFilenameExpression = line.match(/\s\s\s\s(:(\S)*\.(\S)*)/g)
-            if((checkForFilenameExpression && checkForFilenameExpression.length) || (currentLine === example.length)) {
+            if ((checkForFilenameExpression && checkForFilenameExpression.length) || (currentLine === example.length)) {
 
-                if(exampleCodeLine.length) {
+                if (exampleCodeLine.length) {
 
                     /**
                      * remove filename expression in first line
@@ -111,7 +111,7 @@ module.exports = function (docfile) {
                     /**
                      * add example
                      */
-                    if(exampleFilename !== '' && code !== '') {
+                    if (exampleFilename !== '' && code !== '') {
                         files.push({
                             file: exampleFilename,
                             format: exampleFilename.split(/\./)[1],
@@ -128,7 +128,7 @@ module.exports = function (docfile) {
                 /**
                  * if this is the last line of code dont proceed
                  */
-                if(currentLine === example.length) {
+                if (currentLine === example.length) {
                     return
                 }
 

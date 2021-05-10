@@ -1,0 +1,28 @@
+{
+  "extends": "@tsconfig/node10/tsconfig.json",
+
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": true,
+    "declarationMap": true,
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "strictFunctionTypes": false,
+    "lib": ["dom"],
+    "types": [
+      "node",
+      "jest"
+    ]
+  },
+
+  "exclude": [
+    "node_modules",
+    "packages/**/node_modules",
+    "**/*.spec.ts",
+    "e2e/**/*",
+    "coverage",
+    "examples",
+    "jest.config.js",
+    "/*.js"
+  ]
+}

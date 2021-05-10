@@ -52,7 +52,7 @@ Require modules prior to requiring any support files.
 
 Type: `String[]`<br>
 Default: `[]`<br>
-Example: `['@babel/register']` or `[['@babel/register', { rootMode: 'upward', ignore: ['node_modules'] }]] or [() => { require('ts-node').register({ files: true }) }]`
+Example: `['@babel/register']` or `[['@babel/register', { rootMode: 'upward', ignore: ['node_modules'] }]]`
 
 ### failAmbiguousDefinitions
 **Please note that this is a @wdio/cucumber-framework specific option and not recognized by cucumber-js itself**
@@ -121,6 +121,9 @@ Default: `false`
 Only execute the features or scenarios with tags matching the expression. Note that untagged
 features will still spawn a Selenium session (see issue [webdriverio/webdriverio#1247](https://github.com/webdriverio/webdriverio/issues/1247)).
 Please see the [Cucumber documentation](https://docs.cucumber.io/cucumber/api/#tag-expressions) for more details.
+If passing as a command-line argument, compound expressions may need to be enclosed in three sets of double quotes if WebdriverIO is invoked using `npx` on Windows.
+
+E.g.: `npx wdio wdio.config.js --cucumberOpts.tagExpression """@Smoke and not @Pending"""`
 
 Type: `String`<br>
 Default: ``

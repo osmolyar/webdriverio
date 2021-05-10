@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./build",
+    "rootDir": "./src",
+    "types": ["webdriverio"]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "files": [
+    "./src/types/custom.d.ts"
+  ]
+}

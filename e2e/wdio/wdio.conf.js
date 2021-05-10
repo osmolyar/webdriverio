@@ -11,10 +11,7 @@ exports.config = {
      */
     capabilities: [{
         browserName: 'chrome',
-        'goog:chromeOptions': { headless: true, dumpio: true }
-    }, {
-        browserName: 'firefox',
-        'moz:firefoxOptions': { headless: true, dumpio: true }
+        'wdio:devtoolsOptions': { headless: true, dumpio: true }
     }],
 
     /**

@@ -1,6 +1,6 @@
 {
   "name": "devtools",
-  "version": "6.4.1",
+  "version": "6.12.1",
   "description": "A Chrome DevTools protocol binding that maps WebDriver commands into Chrome DevTools commands using Puppeteer",
   "author": "Christian Bromann <christian@saucelabs.com>",
   "homepage": "https://github.com/webdriverio/webdriverio/tree/master/packages/devtools",
@@ -10,15 +10,7 @@
     "node": ">=10.0.0"
   },
   "types": "./devtools.d.ts",
-  "typeScriptVersion": "3.7.3",
-  "scripts": {
-    "build": "run-s clean compile",
-    "clean": "rimraf ./build",
-    "compile": "babel src/ -d build/ --config-file ../../babel.config.js",
-    "test": "run-s test:*",
-    "test:eslint": "eslint src test",
-    "test:unit": "jest"
-  },
+  "typeScriptVersion": "3.8.3",
   "repository": {
     "type": "git",
     "url": "git://github.com/webdriverio/webdriverio.git"
@@ -30,16 +22,19 @@
     "url": "https://github.com/webdriverio/webdriverio/issues"
   },
   "dependencies": {
-    "@wdio/config": "6.1.14",
-    "@wdio/logger": "6.0.16",
-    "@wdio/protocols": "6.3.6",
-    "@wdio/utils": "6.4.0",
+    "@wdio/config": "6.12.1",
+    "@wdio/logger": "6.10.10",
+    "@wdio/protocols": "6.12.0",
+    "@wdio/utils": "6.11.0",
     "chrome-launcher": "^0.13.1",
+    "edge-paths": "^2.1.0",
     "puppeteer-core": "^5.1.0",
     "ua-parser-js": "^0.7.21",
     "uuid": "^8.0.0"
   },
   "devDependencies": {
-    "@types/puppeteer": "^3.0.0"
+    "@types/puppeteer-core": "^2.0.0",
+    "@types/ua-parser-js": "^0.7.33",
+    "@types/uuid": "^8.3.0"
   }
 }

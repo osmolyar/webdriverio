@@ -1,5 +1,7 @@
 import allure from '@wdio/allure-reporter'
-import { MockOverwrite, MockOverwriteFunction } from '@wdio/sync'
+import type { MockOverwriteFunction } from '@wdio/sync'
+
+const { SevereServiceError } = require('webdriverio')
 
 // An example of adding command withing ts file with @wdio/sync
 declare module "@wdio/sync" {
@@ -52,6 +54,22 @@ const callResult = <number>browser.call(() =>
 )
 callResult.toFixed(2)
 
+// printPage
+browser.savePDF('./packages/bar.pdf', {
+    orientation: 'landscape',
+    background: true,
+    width: 24.5,
+    height: 26.9,
+    top: 10,
+    bottom: 10,
+    left: 5,
+    right: 5,
+    shrinkToFit: true,
+    pageRanges: [{}]
+})
+
+browser.savePDF('./packages/bar.pdf')
+
 // browser element command
 browser.getElementRect('elementId')
 
@@ -66,10 +84,6 @@ const { x: x0, y: y0, width: w, height: h } = browser.getWindowSize()
 
 // browser custom command
 browser.browserCustomCommand(5)
-
-browser.overwriteCommand('click', function (origCommand) {
-    origCommand()
-}, true)
 
 // $
 const el1 = $('')
@@ -116,6 +130,16 @@ const el5 = el4.$('')
 el4.getAttribute('class')
 el5.scrollIntoView(false)
 
+// An examples of addValue command with enabled/disabled translation to Unicode
+const el = $('')
+el.addValue('Delete')
+el.addValue('Delete', { translateToUnicode: false })
+
+// An examples of setValue command with enabled/disabled translation to Unicode
+const elem1 = $('')
+elem1.setValue('Delete', { translateToUnicode: true })
+elem1.setValue('Delete')
+
 const selector$$: string | Function = elems.selector
 const parent$$: WebdriverIO.Element | WebdriverIO.BrowserObject = elems.parent
 
@@ -161,7 +185,8 @@ ele.dragAndDrop(ele, { duration: 0 })
 ele.dragAndDrop({ x: 1, y: 2 })
 
 // addLocatorStrategy
-browser.addLocatorStrategy('myStrat', () => {})
+browser.addLocatorStrategy('myStrat', () => document.body)
+browser.addLocatorStrategy('myStrat', () => document.querySelectorAll('div'))
 
 // shared-store-service
 browser.sharedStore.get('foo')
@@ -219,5 +244,49 @@ mock.restore()
 const match = mock.calls[0]
 match.body
 match.headers
+
+// addCommand
+
+// element
+browser.addCommand('getClass', function () {
+    return this.getAttribute('class')
+}, true)
+
+// browser
+browser.addCommand('sleep', function (ms: number) {
+    this.pause(ms)
+}, false)
+
+browser.addCommand('sleep', function (ms: number) {
+    this.pause(ms)
+})
+
+// overwriteCommand
+
+// element
+type ClickOptionsExtended = WebdriverIO.ClickOptions & { wait?: boolean }
+browser.overwriteCommand('click', function (clickFn, opts: ClickOptionsExtended = {}) {
+    if (opts.wait) {
+        this.waitForClickable()
+    }
+    clickFn(opts)
+}, true)
+
+// browser
+browser.overwriteCommand('pause', function (pause, ms = 1000) {
+    pause(ms)
+}, false)
+
+browser.overwriteCommand('pause', function (pause, ms = 1000) {
+    pause(ms)
+})
+
+function testSevereServiceError_noParameters() {
+    throw new SevereServiceError();
+}
+
+function testSevereServiceError_stringParameter() {
+    throw new SevereServiceError("Something happened.");
+}
 
 export default {}

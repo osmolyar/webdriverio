@@ -1,6 +1,6 @@
 {
   "name": "@wdio/sync",
-  "version": "6.4.0",
+  "version": "6.11.0",
   "description": "A WebdriverIO plugin. Helper module to run WebdriverIO commands synchronously",
   "author": "Christian Bromann <christian@saucelabs.com>",
   "homepage": "https://github.com/webdriverio/webdriverio/tree/master/packages/wdio-sync",
@@ -9,16 +9,8 @@
   "engines": {
     "node": ">=10.0.0"
   },
-  "scripts": {
-    "build": "run-s clean compile",
-    "clean": "rimraf ./build",
-    "compile": "babel src/ -d build/ --config-file ../../babel.config.js",
-    "test": "run-s test:*",
-    "test:eslint": "eslint src test",
-    "test:unit": "jest"
-  },
   "types": "./webdriverio.d.ts",
-  "typeScriptVersion": "3.7.3",
+  "typeScriptVersion": "3.8.3",
   "repository": {
     "type": "git",
     "url": "git://github.com/webdriverio/webdriverio.git"
@@ -34,8 +26,9 @@
     "url": "https://github.com/webdriverio/webdriverio/issues"
   },
   "dependencies": {
-    "@types/puppeteer": "^3.0.1",
-    "@wdio/logger": "6.0.16",
+    "@types/fibers": "^3.1.0",
+    "@types/puppeteer": "^5.4.0",
+    "@wdio/logger": "6.10.10",
     "fibers": "^4.0.1"
   },
   "publishConfig": {

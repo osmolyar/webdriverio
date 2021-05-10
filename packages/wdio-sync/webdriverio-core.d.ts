@@ -44,16 +44,79 @@ declare namespace WebdriverIO {
         }
     }
 
-    interface MultiRemoteCapabilities {
-        [instanceName: string]: {
-            capabilities: WebDriver.DesiredCapabilities;
-        };
+    type JsonPrimitive = string | number | boolean | null;
+    type JsonObject = { [x: string]: JsonPrimitive | JsonObject | JsonArray };
+    type JsonArray = Array<JsonPrimitive | JsonObject | JsonArray>;
+    type JsonCompatible = JsonObject | JsonArray;
+
+    interface MultiRemoteBrowserOptions {
+        sessionId?: string
+        capabilities: WebDriver.DesiredCapabilities;
     }
+
+    interface MultiRemoteCapabilities {
+        [instanceName: string]: MultiRemoteBrowserOptions;
+    }
+
 
     interface ServiceOption {
         [key: string]: any;
     }
-    type ServiceEntry = string | HookFunctions | [string, ServiceOption] | object
+
+    interface RunnerInstance {
+        initialise(): Promise<void>
+        shutdown(): Promise<void>
+        getWorkerCount(): number
+        run(args: any): NodeJS.EventEmitter
+        workerPool: any
+    }
+
+    interface ServiceClass {
+        new(options: ServiceOption, caps: WebDriver.DesiredCapabilities, config: Options): ServiceInstance
+    }
+
+    interface RunnerClass {
+        new(configFile: string, config: Omit<WebdriverIO.Config, 'capabilities' | keyof WebdriverIO.Hooks>): RunnerInstance
+    }
+
+    interface ServicePlugin extends ServiceClass {
+        default: ServiceClass
+        launcher?: ServiceClass
+    }
+
+    interface RunnerPlugin extends RunnerClass {
+        default: RunnerClass
+        launcher?: RunnerClass
+    }
+
+    interface ServiceInstance extends HookFunctions {
+        options?: Record<string, any>,
+        capabilities?: WebDriver.DesiredCapabilities,
+        config?: Config
+    }
+
+    type ServiceEntry = (
+        /**
+         * e.g. `services: ['@wdio/sauce-service']`
+         */
+        string |
+        /**
+         * e.g. `services: [{ onPrepare: () => { ... } }]`
+         */
+        HookFunctions |
+        /**
+         * e.g. `services: [CustomClass]`
+         */
+        ServiceClass |
+        /**
+         * e.g. `services: [['@wdio/sauce-service', { ... }]]`
+         */
+        [string, ServiceOption] |
+        /**
+         * e.g. `services: [[CustomClass, { ... }]]`
+         */
+        [ServiceClass, ServiceOption]
+    )
 
     interface Options {
         /**
@@ -84,7 +147,7 @@ declare namespace WebdriverIO {
         /**
          * Sauce Labs provides a headless offering that allows you to run Chrome and Firefox tests headless.
          */
-        headless?: string;
+        headless?: boolean;
         /**
          * Define specs for test execution.
          */
@@ -101,7 +164,7 @@ declare namespace WebdriverIO {
          * An object describing various of suites, which you can then specify
          * with the --suite option on the wdio CLI.
          */
-        suites?: object;
+        suites?: Record<string, string[]>;
         /**
          * Maximum number of total parallel running workers.
          */
@@ -135,7 +198,14 @@ declare namespace WebdriverIO {
          * The number of retry attempts for an entire specfile when it fails as a whole.
          */
         specFileRetries?: number;
-        readonly specFileRetryAttempts?: number;
+        /**
+         * Delay in seconds between the spec file retry attempts
+         */
+        specFileRetriesDelay?: number;
+        /**
+         * Whether or not retried specfiles should be retried immediately or deferred to the end of the queue
+         */
+        specFileRetriesDeferred?: boolean
         /**
          * Default timeout for all `waitFor*` commands. (Note the lowercase f in the option name.)
          * This timeout only affects commands starting with `waitFor*` and their default wait time.
@@ -178,14 +248,23 @@ declare namespace WebdriverIO {
         execArgv?: string[];
     }
 
-    interface RemoteOptions extends WebDriver.Options, Omit<Options, 'capabilities'> { }
+    interface RemoteOptions extends WebDriver.Options, HookFunctions, Omit<Options, 'capabilities'> { }
 
     interface MultiRemoteOptions {
         [instanceName: string]: WebDriver.DesiredCapabilities;
     }
 
-    interface Suite {}
+    interface Suite {
+        error?: any;
+    }
     interface Test {}
+    interface TestResult {
+        error?: any,
+        result?: any,
+        passed: boolean,
+        duration: number,
+        retries: { limit: number, attempts: number }
+    }
 
     interface Results {
         finished: number,
@@ -251,10 +330,12 @@ declare namespace WebdriverIO {
          * variables like `browser`. It is the perfect place to define custom commands.
          * @param capabilities  list of capabilities details
          * @param specs         specs to be run in the worker process
+         * @param browser       instance of created browser/device session
          */
         before?(
             capabilities: WebDriver.DesiredCapabilities,
-            specs: string[]
+            specs: string[],
+            browser: BrowserObject
         ): void;
 
         /**
@@ -312,13 +393,7 @@ declare namespace WebdriverIO {
          * @param stepData  Cucumber step data
          * @param world     Cucumber world
          */
-        afterHook?(test: any, context: any, result: {
-            error?: any,
-            result?: any,
-            passed: boolean,
-            duration: number,
-            retries: { limit: number, attempts: number }
-        }, stepData?: any, world?: any): void;
+        afterHook?(test: any, context: any, result: TestResult, stepData?: any, world?: any): void;
 
         /**
          * Gets executed after all tests are done. You still have access to all global variables from
@@ -371,13 +446,7 @@ declare namespace WebdriverIO {
          * @param context   context to current running test
          * @param result    test result
          */
-        afterTest?(test: Test, context: any, result: {
-            error?: any,
-            result?: any,
-            passed: boolean,
-            duration: number,
-            retries: { limit: number, attempts: number }
-        }): void;
+        afterTest?(test: Test, context: any, result: TestResult): void;
     }
     type _HooksArray = {
         [K in keyof Pick<HookFunctions, "onPrepare" | "onWorkerStart" | "onComplete" | "before" | "after" | "beforeSession" | "afterSession">]: HookFunctions[K] | Array<HookFunctions[K]>;
@@ -393,7 +462,8 @@ declare namespace WebdriverIO {
         element?: Element,
         ms?: number
     }
-    type TouchActions = string | TouchAction | TouchAction[];
+    type TouchActionParameter = string | string[] | TouchAction | TouchAction[];
+    type TouchActions = TouchActionParameter | TouchActionParameter[];
 
     type WaitForOptions = {
         timeout?: number,
@@ -425,6 +495,20 @@ declare namespace WebdriverIO {
     type NewWindowOptions = {
         windowName?: string,
         windowFeatures?: string
+    }
+
+    type PDFPrintOptions = {
+        orientation?: string,
+        scale?: number,
+        background?: boolean,
+        width?: number,
+        height?: number,
+        top?: number,
+        bottom?: number,
+        left?: number,
+        right?: number,
+        shrinkToFit?: boolean,
+        pageRanges?: object[]
     }
 
     type ClickOptions = {
@@ -498,22 +582,38 @@ declare namespace WebdriverIO {
         /**
          * body response of actual resource
          */
-        body: any
+        body: string | Buffer | JsonCompatible
+        /**
+         * HTTP response headers.
+         */
+        responseHeaders: Record<string, string>;
+        /**
+         * HTTP response status code.
+         */
+        statusCode: number;
     }
 
     type PuppeteerBrowser = Partial<import('puppeteer').Browser>;
     type CDPSession = Partial<import('puppeteer').CDPSession>;
-    type MockOverwriteFunction = (request: Request, client: CDPSession) => Promise<string | Record<string, any>>;
+    type MockOverwriteFunction = (request: Matches, client: CDPSession) => Promise<string | Record<string, any>>;
     type MockOverwrite = string | Record<string, any> | MockOverwriteFunction;
 
     type MockResponseParams = {
-        statusCode?: number,
-        headers?: Record<string, string>
+        statusCode?: number | ((request: Matches) => number),
+        headers?: Record<string, string> | ((request: Matches) => Record<string, string>),
+        /**
+         * fetch real response before responding with mocked data. Default: true
+         */
+        fetchResponse?: boolean
     }
 
     type MockFilterOptions = {
-        method?: string,
-        headers?: Record<string, string>
+        method?: string | ((method: string) => boolean),
+        headers?: Record<string, string> | ((headers: Record<string, string>) => boolean),
+        requestHeaders?: Record<string, string> | ((headers: Record<string, string>) => boolean),
+        responseHeaders?: Record<string, string> | ((headers: Record<string, string>) => boolean),
+        statusCode?: number | ((statusCode: number) => boolean),
+        postData?: string | ((payload: string | undefined) => boolean)
     }
 
     type ErrorCode = 'Failed' | 'Aborted' | 'TimedOut' | 'AccessDenied' | 'ConnectionClosed' | 'ConnectionReset' | 'ConnectionRefused' | 'ConnectionAborted' | 'ConnectionFailed' | 'NameNotResolved' | 'InternetDisconnected' | 'AddressUnreachable' | 'BlockedByClient' | 'BlockedByResponse'
@@ -527,7 +627,10 @@ declare namespace WebdriverIO {
     }
     type ThrottleOptions = ThrottlePreset | CustomThrottle
 
-    interface Element {
+    type AddCommandFn<IsElement extends boolean = false> = (this: IsElement extends true ? Element : BrowserObject, ...args: any[]) => any
+    type OverwriteCommandFn<ElementKey extends keyof Element, BrowserKey extends keyof BrowserObject, IsElement extends boolean = false> = (this: IsElement extends true ? Element : BrowserObject, origCommand: IsElement extends true ? Element[ElementKey] : BrowserObject[BrowserKey], ...args: any[]) => any
+
+    interface Element extends BrowserObject {
         selector: string;
         elementId: string;
 
@@ -553,11 +656,16 @@ declare namespace WebdriverIO {
         parent: Element | WebdriverIO.BrowserObject;
 
         /**
+         * true if element is a React component
+         */
+        isReactElement?: boolean
+
+        /**
          * add command to `element` scope
          */
         addCommand(
             name: string,
-            func: Function
+            func: AddCommandFn<false>
         ): void;
         
         /**
@@ -585,10 +693,12 @@ declare namespace WebdriverIO {
          * characters like Left arrow or Back space. WebdriverIO will take care of
          * translating them into unicode characters. You’ll find all supported characters
          * [here](https://w3c.github.io/webdriver/webdriver-spec.html#keyboard-actions).
-         * To do that, the value has to correspond to a key from the table.
+         * To do that, the value has to correspond to a key from the table. It can be disabled
+         * by setting `translateToUnicode` optional parameter to false.
          */
         addValue(
-            value: string | number | boolean | object | any[]
+            value: string | number | boolean | object | any[],
+            options?: AddValueOptions
         ): void;
 
         /**
@@ -627,7 +737,7 @@ declare namespace WebdriverIO {
         doubleClick(): void;
 
         /**
-         * Drag an item to a destination element.
+         * Drag an item to a destination element or position.
          */
         dragAndDrop(
             target: Element | DragAndDropCoordinate,
@@ -649,6 +759,16 @@ declare namespace WebdriverIO {
         getCSSProperty(
             cssProperty: string
         ): CSSProperty;
+
+        /**
+         * Get the computed WAI-ARIA label of an element.
+         */
+        getComputedLabel(): string;
+
+        /**
+         * Get the computed WAI-ARIA label of an element.
+         */
+        getComputedRole(): string;
 
         /**
          * Get source code of specified DOM element by selector.
@@ -769,6 +889,21 @@ declare namespace WebdriverIO {
         ): void;
 
         /**
+         * Returns the next sibling element of the selected DOM-element.
+         */
+        nextElement(): Element;
+
+        /**
+         * Returns the parent element of the selected DOM-element.
+         */
+        parentElement(): Element;
+
+        /**
+         * Returns the previous sibling element of the selected DOM-element.
+         */
+        previousElement(): Element;
+
+        /**
          * The `react$$` command is a useful command to query multiple React Components
          * by their actual name and filter them by props and state.
          */
@@ -805,7 +940,7 @@ declare namespace WebdriverIO {
          */
         selectByAttribute(
             attribute: string,
-            value: string
+            value: string | number
         ): void;
 
         /**
@@ -819,7 +954,7 @@ declare namespace WebdriverIO {
          * Select option with displayed text matching the argument.
          */
         selectByVisibleText(
-            text: string
+            text: string | number
         ): void;
 
         /**
@@ -828,10 +963,12 @@ declare namespace WebdriverIO {
          * unicode characters like Left arrow or Back space. WebdriverIO will take care of
          * translating them into unicode characters. You’ll find all supported characters
          * [here](https://w3c.github.io/webdriver/webdriver-spec.html#keyboard-actions).
-         * To do that, the value has to correspond to a key from the table.
+         * To do that, the value has to correspond to a key from the table. It can be disabled
+         * by setting `translateToUnicode` optional parameter to false.
          */
         setValue(
-            value: string | number | boolean | object | any[]
+            value: string | number | boolean | object | any[],
+            options?: AddValueOptions
         ): void;
 
         /**
@@ -913,26 +1050,34 @@ declare namespace WebdriverIO {
 
         
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Abort the request with one of the following error codes:
+         * `Failed`, `Aborted`, `TimedOut`, `AccessDenied`, `ConnectionClosed`,
+         * `ConnectionReset`, `ConnectionRefused`, `ConnectionAborted`,
+         * `ConnectionFailed`, `NameNotResolved`, `InternetDisconnected`,
+         * `AddressUnreachable`, `BlockedByClient`, `BlockedByResponse`.
          */
         abort(
             errorCode: ErrorCode
         ): void;
 
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Abort the request once with one of the following error codes:
+         * `Failed`, `Aborted`, `TimedOut`, `AccessDenied`, `ConnectionClosed`,
+         * `ConnectionReset`, `ConnectionRefused`, `ConnectionAborted`,
+         * `ConnectionFailed`, `NameNotResolved`, `InternetDisconnected`,
+         * `AddressUnreachable`, `BlockedByClient`, `BlockedByResponse`.
          */
         abortOnce(
             errorCode: ErrorCode
         ): void;
 
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Resets all information stored in the `mock.calls` array.
          */
         clear(): void;
 
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Always respond with same overwrite.
          */
         respond(
             overwrites: MockOverwrite,
@@ -940,7 +1085,10 @@ declare namespace WebdriverIO {
         ): void;
 
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Only respond once with given overwrite. You can call `respondOnce` multiple
+         * consecutive times and it will start with the respond you defined last. If you
+         * only use `respondOnce` and the resource is called more times a mock has been
+         * defined than it defaults back to the original resource.
          */
         respondOnce(
             overwrites: MockOverwrite,
@@ -948,7 +1096,7 @@ declare namespace WebdriverIO {
         ): void;
 
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Does everything that `mock.clear()` does, and also removes any mocked return values or implementations.
          */
         restore(): void;
     }
@@ -973,19 +1121,19 @@ declare namespace WebdriverIO {
         /**
          * add command to `browser` or `element` scope
          */
-        addCommand(
+        addCommand<IsElement extends boolean = false>(
             name: string,
-            func: Function,
-            attachToElement?: boolean
+            func: AddCommandFn<IsElement>,
+            attachToElement?: IsElement
         ): void;
 
         /**
          * overwrite `browser` or `element` command
          */
-        overwriteCommand(
-            name: string,
-            func: (origCommand: Function, ...args: any[]) => any,
-            attachToElement?: boolean
+        overwriteCommand<ElementKey extends keyof Element, BrowserKey extends keyof BrowserObject, IsElement extends boolean = false>(
+            name: IsElement extends true ? ElementKey : BrowserKey,
+            func: OverwriteCommandFn<ElementKey, BrowserKey, IsElement>,
+            attachToElement?: IsElement
         ): void;
 
         /**
@@ -993,7 +1141,7 @@ declare namespace WebdriverIO {
          */
         addLocatorStrategy(
             name: string,
-            func: (elementFetchingMethod: (selector: string) => any) => void
+            func: (selector: string) => HTMLElement | HTMLElement[] | NodeListOf<HTMLElement>
         ): void
         
         /**
@@ -1069,7 +1217,7 @@ declare namespace WebdriverIO {
         getPuppeteer(): PuppeteerBrowser;
 
         /**
-         * Returns browser window size (and position for drivers with W3C support).
+         * Returns browser window size.
          */
         getWindowSize(): WebDriver.RectReturn;
 
@@ -1084,7 +1232,10 @@ declare namespace WebdriverIO {
         ): void;
 
         /**
-         * > This is a __beta__ feature. Please give us feedback and file [an issue](https://github.com/webdriverio/webdriverio/issues/new/choose) if certain scenarions don't work as expected!
+         * Mock the response of a request. You can define a mock based on a matching
+         * glob and corresponding header and status code. Calling the mock method
+         * returns a stub object that you can use to modify the response of the
+         * web resource.
          */
         mock(
             url: string,
@@ -1135,6 +1286,14 @@ declare namespace WebdriverIO {
          * new Selenium sessions is very time consuming especially when using cloud services.
          */
         reloadSession(): void;
+
+        /**
+         * Prints the page of the current browsing context to a PDF file on your OS.
+         */
+        savePDF(
+            filepath: string,
+            options?: PDFPrintOptions
+        ): Buffer;
 
         /**
          * Appium only. Save a video started by startRecordingScreen command to file.
@@ -1207,7 +1366,7 @@ declare namespace WebdriverIO {
 
         /**
          * Uploads a file to the Selenium Standalone server or other browser driver
-         * (e.g. Chromedriver) by using the [`file`](docs/api/selenium.html#file) command.
+         * (e.g. Chromedriver) by using the [`file`](/docs/api/selenium.html#file) command.
          * _Note:_ that this command is only supported if you use a Selenium Hub or
          * Chromedriver directly.
          */
@@ -1235,5 +1394,43 @@ declare namespace WebdriverIO {
         ): boolean;
     }
 
-    interface Config extends Options, Omit<WebDriver.Options, "capabilities">, Hooks {}
+    interface BrowserObject {
+        isMultiremote?: false;
+
+        /**
+         * @private
+         */
+        _NOT_FIBER?: boolean
+        /**
+         * @private
+         */
+        wdioRetries?: number
+    }
+
+    type MultiRemoteBrowserReference = Record<string, BrowserObject>
+
+    interface MultiRemoteBrowser extends Browser {
+        /**
+         * multiremote browser instance names
+         */
+        instances: string[];
+        /**
+         * flag to indicate multiremote browser session
+         */
+        isMultiremote: boolean;
+    }
+
+    type MultiRemoteBrowserObject = MultiRemoteBrowser & MultiRemoteBrowserReference
+
+    interface Config extends Options, Omit<WebDriver.Options, "capabilities">, Hooks {
+         /**
+         * internal usage only. To run in watch mode see https://webdriver.io/docs/watcher.html
+         */
+        watch?: boolean;
+        runnerEnv?: Record<string, any>;
+    }
+
+    interface AddValueOptions {
+        translateToUnicode?: boolean
+    }
 }

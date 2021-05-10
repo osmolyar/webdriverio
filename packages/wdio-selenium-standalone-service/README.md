@@ -14,7 +14,7 @@ The easiest way is to keep `@wdio/selenium-standalone-service` as a devDependenc
 ```json
 {
     "devDependencies": {
-        "@wdio/selenium-standalone-service": "^6.1.14"
+        "@wdio/selenium-standalone-service": "^6.11.0"
     }
 }
 ```
@@ -29,27 +29,38 @@ Instructions on how to install `WebdriverIO` can be found [here.](https://webdri
 
 ## Configuration
 
-By default, Google Chrome and Firefox are available when installed on the host system. In order to use the service you need to add `selenium-standalone` to your service array:
+By default, ChromeDriver, geckodriver and some other browser drivers based on the OS are available when installed on the host system. In order to use the service you need to add `selenium-standalone` to your service array:
 
 ```js
+/**
+ * simplified mode (available since v6.11.0)
+ * set `true` to use the version provided by `selenium-standalone`, 'latest' by default
+*/
+export.config = {
+    // ...
+    services: [
+        ['selenium-standalone', { drivers: { firefox: '0.28.0', chrome: true, chromiumedge: 'latest' } }]
+    ],
+    // ...
+};
+```
+
+Control browser driver installation/running separately.
+```js
 // wdio.conf.js
+const drivers = {
+    chrome: { version: '86.0.4240.22' }, // https://chromedriver.chromium.org/
+    firefox: { version: '0.27.0' }, // https://github.com/mozilla/geckodriver/releases
+    chromiumedge: { version: '85.0.564.70' } // https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/
+}
+
 export.config = {
     // ...
     services: [
         ['selenium-standalone', {
             logPath: 'logs',
-            installArgs: {
-                drivers: {
-                    chrome: { version: '79.0.3945.88' },
-                    firefox: { version: '0.26.0' }
-                }
-            },
-            args: {
-                drivers: {
-                    chrome: { version: '79.0.3945.88' },
-                    firefox: { version: '0.26.0' }
-                }
-            },
+            installArgs: { drivers }, // drivers to install
+            args: { drivers } // drivers to use
         }]
     ],
     // ...
@@ -78,6 +89,9 @@ export.config = {
         port: 5555
     }, {
         browserName: 'firefox',
+        port: 5555
+    }, {
+        browserName: 'MicrosoftEdge',
         port: 5555
     }]
     // ...
@@ -114,8 +128,8 @@ args: {
     version : "3.141.59",
     drivers : {
         chrome : {
-            version : "79.0.3945.88",
-            arch    : process.arch,
+            version : "86.0.4240.22",
+            arch    : process.arch
         }
     }
 },
@@ -137,9 +151,9 @@ installArgs: {
     baseURL : "https://selenium-release.storage.googleapis.com",
     drivers : {
         chrome : {
-            version : "77.0.3865.40",
+            version : "86.0.4240.22",
             arch    : process.arch,
-            baseURL : "https://chromedriver.storage.googleapis.com",
+            baseURL : "https://chromedriver.storage.googleapis.com"
         }
     }
 },
